@@ -1,3 +1,8 @@
+use lexer::lexer::Lexer;
+
+mod lexer;
+
 fn main() {
-    println!("Hello, world!")
+    let mut lex =  Lexer::new();
+    lex.analizer(vec!["asdasd", "asdasd"]);
 }

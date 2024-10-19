@@ -1,23 +1,32 @@
+//----External Libs----
 use lsp_server::{Connection, Message, Request, Response, RequestId};
-use lsp_types::{InitializeParams, InitializeResult, ServerCapabilities};
+use lsp_types::{InitializeResult, ServerCapabilities};
+// use lsp_types::InitializeParams;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+//----Testings----
 mod tests;
+mod benchmarks;
+
+//----Structs----
 #[derive(Serialize, Deserialize)]
 struct ExampleParams {
     message: String,
 }
 
+
+//----Methods----
 #[tokio::main]
 async fn main() {
     // Establecer conexión con el cliente (editor)
     let (connection, io_threads) = Connection::stdio();
 
     // Capacidades del servidor
-    let server_capabilities = serde_json::to_value(ServerCapabilities::default()).unwrap();
+    let _server_capabilities = serde_json::to_value(ServerCapabilities::default()).unwrap();
 
     // Inicializar la conexión
-    let _initialize_params = connection.initialize(server_capabilities).unwrap();
+
 
     // Esperar el mensaje de inicialización del cliente
     let (initialize_id, _initialize_value): (RequestId, Value) = connection.initialize_start().unwrap();
@@ -55,10 +64,12 @@ async fn handle_request(connection: &Connection, req: Request) {
             let params: ExampleParams = serde_json::from_value(req.params).unwrap();
             let response = Response::new_ok(req.id.clone(), params.message);
             connection.sender.send(Message::Response(response)).unwrap();
+            println!("Bruhn't")
         }
         _ => {
             let response = Response::new_err(req.id.clone(), -32601, "Method not found".to_string());
             connection.sender.send(Message::Response(response)).unwrap();
+            println!("Bruh")
         }
     }
 }

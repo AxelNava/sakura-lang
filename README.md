@@ -1,2 +1,2 @@
-# compilador-extra
-Hace falta que se coloque bien el nombre de la repo
+# Sakura-lang
+This languaje is based in rust, and it want provide you a diferent experience.

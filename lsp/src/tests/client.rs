@@ -60,10 +60,12 @@ pub async fn _run_client() {
         method: "example/echo".to_string(),
         params: json!({ "message": "Hello, LSP!" }),
     };
+    println!("Sending echo request: {:?}", echo_request);
     connection.sender.send(Message::Request(echo_request)).unwrap();
 
     // Leer respuesta a example/echo
     while let Some(line) = reader.next_line().await.unwrap() {
+        println!("Received response: {}", line);
         if line.contains("Hello, LSP!") {
             println!("Echo response: {}", line);
             break;
