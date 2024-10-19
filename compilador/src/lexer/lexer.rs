@@ -1,4 +1,6 @@
-﻿use super::{lexer_cons::*, lexer_tokens::*};
+﻿use std::ops::Index;
+
+use super::{lexer_cons::*, lexer_tokens::*};
 
 pub struct Lexer {
     pub lexemes:Vec<(String,(TokEnum, i32))>,
@@ -18,7 +20,7 @@ impl Lexer {
     /// ## asdffasdfasdfa
     pub fn analizer(&mut self, data:Vec<&str>){
         
-        let mut ascii = u8::MAX;
+        let mut ascii = u8::MIN;
 
         let mut word: String = String::new();
         self.num_line = 0;
@@ -99,11 +101,82 @@ impl Lexer {
 
 
     fn chain_lexemes(&mut self, line:&str, index:usize) -> usize{
-        12
+        let mut counter:usize = 0;
+        let mut word = String::new();
+        let mut line_copy = line.clone();
+        let chars: Vec<char> = line.chars().collect();
+        let first_letter =  *chars.get(index).unwrap();
+        for(index_line , &letter) in chars.iter().enumerate().skip(index){
+            if letter as u8 != Cons::SPACE as u8{
+                word += letter.to_string().as_str();
+            }
+            if index_line != index && letter == first_letter {
+                if first_letter as u8 == Cons::SLASH as u8{
+                        //Find the double slash position
+                        let doble_slash = line_copy.find("//").unwrap();
+                        
+                        //Remove all that is after those
+                        line_copy = &line_copy[index_line..];
+
+                        //If is necesary that will remove the spaces at the end
+                        let line_trimed = line_copy.trim_end();
+
+                        self.fill_lexemes(line_trimed, self.num_line + 1, Some(TokEnum::SCMT));
+                        counter = line.len() ;
+                }
+                else if letter as u8 == Cons::STRING as u8 {
+                    self.fill_lexemes(&word, self.num_line + 1, Some(TokEnum::STRING));
+                }
+                else if letter as u8 == Cons::CHAR as u8 {
+                    self.fill_lexemes(&word, self.num_line + 1, Some(TokEnum::CHAR));
+                }
+                break;
+            }
+            else { counter += 1; }
+        }
+        counter
     }
 
 
     fn lexeme_filter(&mut self, lexeme:&str)->TokEnum{
+        
+        //Brackets or semicolon
+        let mut token:(bool,TokEnum) = Tokens::is_bracket_or_scn(lexeme);
+        if token.0{
+            return token.1;
+        }
+        
+        //Numeric Types
+        if Tokens::is_float(lexeme){
+            return TokEnum::FLOAT;
+        }
+        else if Tokens::is_integer(lexeme){
+            return TokEnum::INTEGER;
+        }
+
+        //Encapsulations
+        if Tokens::is_encapsulation(lexeme){
+            return TokEnum::ENCAPSULATION;
+        }
+
+        //Reserved Words
+        token = Tokens::is_reserved_word(lexeme);
+        if token.0{
+            return token.1;
+        }
+
+        //Primitives
+        if Tokens::is_primitive(lexeme){
+            return TokEnum::PRIMITIVE;
+        }
+
+        //Operators
+        token = Tokens::is_operator(lexeme);
+        if token.0{
+            return token.1;
+        }
+
+        //Default
         return TokEnum::IDENTIFIER;
     }
 

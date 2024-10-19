@@ -1,9 +1,11 @@
+use std::env::consts::FAMILY;
+
 use super::lexer_cons::*;
 
 #[derive(PartialEq)]
 pub enum TokEnum {
     IDENTIFIER,
-    Type,
+    PRIMITIVE,
     ORB, //Open Round Brackets
     CRB, //Close Round Brackets
     OSB, //Open Square Brackets
@@ -58,14 +60,14 @@ impl Tokens {
 
     pub fn is_integer(lexeme: &str) -> bool { lexeme.parse::<i32>().is_ok() }
     
-    pub fn is_operator(lexeme: u8) -> (bool, TokEnum) {
+    pub fn is_operator(lexeme: &str) -> (bool, TokEnum) {
         match lexeme {
-            x if x == Cons::ADD as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::MINUS as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::SLASH as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::POW as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::MULT as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::EQUALS as u8 => return (true, TokEnum::ADD),
+            x if x == (Cons::ADD as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::MINUS as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::SLASH as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::POW as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::MULT as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::EQUALS as u8).to_string() => return (true, TokEnum::ADD),
             _ => return (false, TokEnum::IDENTIFIER),
         }
     }
@@ -80,14 +82,14 @@ impl Tokens {
         }
     }
     
-    pub fn is_bracket_or_scn(lexeme: u8) -> (bool, TokEnum) {
+    pub fn is_bracket_or_scn(lexeme: &str) -> (bool, TokEnum) {
         match lexeme {
-            x if x == Cons::SCN as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::OB as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::CB as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::OSB as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::ORB as u8 => return (true, TokEnum::ADD),
-            x if x == Cons::CRB as u8 => return (true, TokEnum::ADD),
+            x if x == (Cons::SCN as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::OB as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::CB as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::OSB as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::ORB as u8).to_string() => return (true, TokEnum::ADD),
+            x if x == (Cons::CRB as u8).to_string() => return (true, TokEnum::ADD),
             _ => return (false, TokEnum::IDENTIFIER),
         }
     }
@@ -100,11 +102,32 @@ impl Tokens {
         }
     }
 
+    pub fn is_encapsulation(lexeme: &str) -> bool {
+        match lexeme {
+            x if x == W_PRIVATE => return true,
+            x if x == W_STATIC => return true,
+            x if x == W_PUBLIC => return true,
+            x if x == W_INTERNAL => return true,
+            _ => return false,
+        }
+    }
+    
+    pub fn is_primitive(lexeme: &str) -> bool {
+        match lexeme {
+            x if x == W_STRING => return true,
+            x if x == W_CHAR => return true,
+            x if x == W_INT => return true,
+            x if x == W_FLOAT=> return true,
+            x if x == W_BOOL => return true,
+            _ => return false,
+        }
+    }
+    
+    
     pub fn item_addable(token: TokEnum) -> bool {
         matches!(token, TokEnum::USING | TokEnum::VOID 
             | TokEnum::ENCAPSULATION | TokEnum::CLASS 
             | TokEnum::IDENTIFIER)
     }
-    
 
 }
