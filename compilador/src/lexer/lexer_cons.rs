@@ -1,16 +1,16 @@
 pub enum Cons {
-    SCN = 59,
+    SCN = 59, //SEMICOLON
     SPACE = 32,
-    CR = 13,
+    CR = 13, //CARRIAGUE RETURN
     DOT = 46,
     STRING = 34,
     CHAR = 39,
-    ORB = 40,
-    CRB = 41,
-    OSB = 91,
-    CSB = 93,
-    OB = 123,
-    CB = 125,
+    ORB = 40, //OPEN ROUND BRACKET
+    CRB = 41, //CLOSE ROUND BRACKET
+    OSB = 91, //OPEN SQUARE BRACKET
+    CSB = 93, //CLOSE SQUARE BRACKET
+    OB = 123, //OPEN BRACKET
+    CB = 125, //CLOSE BRACKET
     SLASH = 47,
     EQUALS = 61,
     NOT = 33,

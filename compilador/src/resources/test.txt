@@ -1,0 +1,16 @@
+namespace Test
+{
+    using System.Text;
+
+    internal class Program
+    {
+        static void Main(string[] args)
+        {
+            int num = 12;
+            float res = num + 1.5;
+            int "fafs"
+            Console.WriteLine('2');
+            //Console.WriteLine(res);
+        }
+    }
+}
