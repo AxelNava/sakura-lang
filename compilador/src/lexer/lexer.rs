@@ -1,11 +1,29 @@
-﻿use std::{string, vec};
+﻿use super::{lexer_cons::*, lexer_tokens::*};
 
-use super::{lexer_cons::*, lexer_tokens::*};
+pub struct Lexeme{
+    pub word:String,
+    pub token:TokEnum,
+    pub line:i32
+}
+
+impl Lexeme {
+    pub fn new() -> Lexeme {
+        Lexeme {
+            word:String::new(),
+            token:TokEnum::IDENTIFIER,
+            line: 0,
+        }
+    }
+}
+
+
 
 pub struct Lexer {
-    pub lexemes: Vec<(String, (TokEnum, i32))>,
+    pub lexemes: Vec<Lexeme>,
     num_line: i32,
 }
+
+
 
 impl Lexer {
     pub fn new() -> Lexer {
@@ -16,7 +34,6 @@ impl Lexer {
     }
 
     /// Make the analizer
-    /// ## asdffasdfasdfa
     pub fn analizer(&mut self, data: Vec<&str>) {
         let mut ascii = u8::MIN;
         let char_min_value = '\0';
@@ -249,12 +266,17 @@ impl Lexer {
 
     fn fill_lexemes(&mut self, lexeme: &str, line: i32, token: Option<TokEnum>) {
         let token = token.unwrap_or(TokEnum::IDENTIFIER);
+        let mut lexeme_item = Lexeme::new();
         if token != TokEnum::IDENTIFIER {
-            self.lexemes.push((lexeme.to_string(), (token, line)));
+            lexeme_item.word = lexeme.to_string();
+            lexeme_item.token = token;
+            lexeme_item.line = line;
+            self.lexemes.push(lexeme_item);
         } else {
-            let lexeme_found = self.lexeme_filter(lexeme);
-            self.lexemes
-                .push((lexeme.to_string(), (lexeme_found, line)));
+            lexeme_item.word = lexeme.to_string();
+            lexeme_item.token = self.lexeme_filter(lexeme);
+            lexeme_item.line = line;
+            self.lexemes.push(lexeme_item);
         }
     }
 

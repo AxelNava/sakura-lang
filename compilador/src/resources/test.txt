@@ -8,6 +8,7 @@ namespace Test
         {
             int num = 12;
             float res = num + 1.5;
+            rest++;
             int "fafs"
             Console.WriteLine('2');
             //Console.WriteLine(res);

@@ -19,7 +19,7 @@ fn main() {
             lex.analizer(content.lines().collect());
             
             for lexeme in lex.lexemes {
-                println!("*{}*: ({}: {})", lexeme.0, lexeme.1.0.as_ref(), lexeme.1.1)
+                println!("*{}*: ({}: {})", lexeme.word, lexeme.token.as_ref(), lexeme.line)
             }
 
         }
