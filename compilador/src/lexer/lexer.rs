@@ -1,10 +1,9 @@
-﻿use std::{string, vec};
-
-use super::{lexer_cons::*, lexer_tokens::*};
+﻿use super::{lexer_cons::*, lexer_tokens::*};
 
 pub struct Lexer {
     pub lexemes: Vec<(String, (TokEnum, i32))>,
     num_line: i32,
+    pub errors: Vec<String>,
 }
 
 impl Lexer {
@@ -12,12 +11,143 @@ impl Lexer {
         Lexer {
             lexemes: Vec::new(),
             num_line: 0,
+            errors: Vec::new(),
+        }
+    }
+    fn is_newline(char: char) -> bool {
+        char == '\n' || char == '\r'
+    }
+    pub fn analyze(&mut self, content: String) {
+        let characters = content.as_str().chars().collect::<Vec<char>>();
+        let mut tokens = Vec::<TokEnum>::new();
+        let mut current_pos = 0;
+
+        //Check if the first character is BOM(Byte Order Mark, for windows only)
+        if characters.get(0) == Some(&'\u{feff}') {
+            current_pos = current_pos + 1;
+        };
+        let total_length = content.len();
+        while current_pos < total_length {
+            let mut result_parse: (String, Result<TokEnum, &str>) =
+                Self::parse_keywords_identifiers(&characters[current_pos..]);
+            if let Err(error) = result_parse.1 {
+                if !error.is_empty() {
+                    self.errors.push(error.to_string());
+                }
+            } else {
+                current_pos = current_pos + result_parse.0.len();
+                tokens.push(result_parse.1.unwrap());
+                continue;
+            }
+
+            result_parse = Self::parse_two_or_one_characters(&characters[current_pos..]);
+            if result_parse.1.is_ok() {
+                tokens.push(result_parse.1.unwrap());
+                current_pos = current_pos + result_parse.0.len();
+            }
+            result_parse = Self::parse_one_character(&characters[current_pos..]);
+            if result_parse.1.is_ok() {
+                tokens.push(result_parse.1.unwrap());
+                current_pos = current_pos + result_parse.0.len();
+            }
+        }
+    }
+    fn parse_one_character(chars: &[char]) -> (String, Result<TokEnum, &str>) {
+        let mut binding = chars.iter().peekable();
+        let char_to_check = binding.peek();
+        if char_to_check.is_some() {
+            let char = **char_to_check.unwrap();
+            let token = Tokens::is_operator(&char.to_string());
+            if token.is_some() {
+                ()
+            }
+        }
+        ("".to_string(), Err(""))
+    }
+    fn parse_keywords_identifiers(chars: &[char]) -> (String, Result<TokEnum, &str>) {
+        let mut peekable_chars = chars.iter().peekable();
+        let mut end_word = 0;
+        while peekable_chars.peek().is_some() {
+            let item = **peekable_chars.peek().unwrap();
+            if item.is_ascii_whitespace() {
+                break;
+            };
+
+            //Si el primer carácter es numérico, entonces devuelve un error
+            if end_word == 0 && item.is_numeric() {
+                return (
+                    "".to_string(),
+                    Err("No se pueden tener números al inicio del nombre de una variable"),
+                );
+            }
+
+            if item.is_ascii_alphabetic() || item.eq(&'_') {
+                end_word = end_word + 1;
+                peekable_chars.next();
+            }
+        }
+        if (end_word == 0) {
+            return ("".to_string(), Err(""));
+        }
+        let string_identifier = chars.iter().take(end_word).collect::<String>();
+        let token = Tokens::get_keyword(&string_identifier);
+        if (token.is_none()) {
+            return (string_identifier, Ok(TokEnum::IDENTIFIER));
+        }
+        (string_identifier, Ok(token.unwrap()))
+    }
+    fn parse_two_or_one_characters(chars: &[char]) -> (String, Result<TokEnum, &str>) {
+        let num_chars = chars.len();
+        if num_chars < 2 {
+            return ("".to_string(), Err(""));
+        }
+
+        let empty_result = ("".to_string(), Err(""));
+        match chars.get(0).unwrap() {
+            '=' => match chars.get(1).unwrap() {
+                '>' => ("=>".to_string(), Ok(TokEnum::ArrowEq)),
+                _ => empty_result,
+            },
+
+            '<' => match chars.get(1).unwrap() {
+                '=' => ("<=".to_string(), Ok(TokEnum::EM)),
+                _ => empty_result,
+            },
+            '>' => match chars.get(1).unwrap() {
+                '=' => (">=".to_string(), Ok(TokEnum::EG)),
+                _ => empty_result,
+            },
+            '-' => match chars.get(1).unwrap() {
+                '>' => ("->".to_string(), Ok(TokEnum::ArrowSingle)),
+                _ => empty_result,
+            },
+            '&' => match chars.get(1).unwrap() {
+                '&' => ("&&".to_string(), Ok(TokEnum::AND)),
+                _ => empty_result,
+            },
+            '|' => match chars.get(1).unwrap() {
+                '|' => ("||".to_string(), Ok(TokEnum::DoublePipe)),
+                _ => ("".to_string(), Err("")),
+            },
+            ':' => match chars.get(1).unwrap() {
+                ':' => ("".to_string(), Ok(TokEnum::MagicDoubleDot)),
+                _ => empty_result,
+            },
+            '/' => match chars.get(1).unwrap() {
+                '*' => ("/*".to_string(), Ok(TokEnum::OBlockComment)),
+                '/' => ("//".to_string(), Ok(TokEnum::SCMT)),
+                _ => empty_result,
+            },
+            '.' => match chars.get(1).unwrap() {
+                '.' => ("".to_string(), Ok(TokEnum::Dot)),
+                _ => empty_result,
+            }
+            _ => empty_result,
         }
     }
 
     /// Make the analizer
-    /// ## asdffasdfasdfa
-    pub fn analizer(&mut self, data: Vec<&str>) {
+    pub fn analyzer(&mut self, data: Vec<&str>) {
         let mut ascii = u8::MIN;
         let char_min_value = '\0';
         let mut word: String = String::new();
@@ -77,16 +207,16 @@ impl Lexer {
                             }
 
                             //Chain Lexeme
-                            if self.is_start_chain(letter as u8) {
-                                if word != String::new() {
-                                    word += letter.to_string().as_str();
-                                    index += self.chain_lexemes(line, index.clone());
-                                    word = String::new();
-                                } else {
-                                    index += self.chain_lexemes(line, index.clone());
-                                }
-                                letter = char_min_value;
-                            }
+                            // if self.is_start_chain(letter as u8) {
+                            //     if word != String::new() {
+                            //         word += letter.to_string().as_str();
+                            //         index += self.chain_lexemes(line, index.clone());
+                            //         word = String::new();
+                            //     } else {
+                            //         index += self.chain_lexemes(line, index.clone());
+                            //     }
+                            //     letter = char_min_value;
+                            // }
 
                             //Lexeme Connected By Dot
                             if ascii == Cons::DOT as u8 {
@@ -144,13 +274,8 @@ impl Lexer {
                                 self.fill_lexemes(&word, self.num_line, None);
                                 word = String::new();
                             }
-                            self.fill_lexemes(
-                                letter.to_string().as_str(),
-                                self.num_line,
-                                None,
-                            );
-                        }
-                        else{
+                            self.fill_lexemes(letter.to_string().as_str(), self.num_line, None);
+                        } else {
                             word += letter.to_string().as_str();
                             self.fill_lexemes(word.as_str(), self.num_line, None);
                             word = String::new();
@@ -205,9 +330,10 @@ impl Lexer {
 
     fn lexeme_filter(&mut self, lexeme: &str) -> TokEnum {
         //Brackets or semicolon
-        let mut token: (bool, TokEnum) = Tokens::is_bracket_or_scn(lexeme);
-        if token.0 {
-            return token.1;
+        let mut token = Tokens::is_bracket_or_scn(lexeme);
+
+        if token.is_some() {
+            return token.unwrap();
         }
 
         //Numeric Types
@@ -217,17 +343,6 @@ impl Lexer {
             return TokEnum::INTEGER;
         }
 
-        //Encapsulations
-        if Tokens::is_encapsulation(lexeme) {
-            return TokEnum::ENCAPSULATION;
-        }
-
-        //Reserved Words
-        token = Tokens::is_reserved_word(lexeme);
-        if token.0 {
-            return token.1;
-        }
-
         //Primitives
         if Tokens::is_primitive(lexeme) {
             return TokEnum::PRIMITIVE;
@@ -235,10 +350,9 @@ impl Lexer {
 
         //Operators
         token = Tokens::is_operator(lexeme);
-        if token.0 {
-            return token.1;
+        if token.is_some() {
+            return token.unwrap();
         }
-
         //Default
         TokEnum::IDENTIFIER
     }
@@ -268,7 +382,7 @@ impl Lexer {
             || ascii == Cons::SCN as u8
     }
 
-    fn is_start_chain(&mut self, ascii: u8) -> bool {
+    fn is_start_chain(ascii: u8) -> bool {
         ascii == Cons::STRING as u8 || ascii == Cons::SLASH as u8 || ascii == Cons::CHAR as u8
     }
 
@@ -291,20 +405,21 @@ impl Lexer {
     }
 
     fn complete_dot_element(&mut self, mut index: usize, line: Vec<char>) -> (usize, String) {
-        let mut second_mid_data = String::new();
-        let mut token: TokEnum = TokEnum::IDENTIFIER;
-        while index < line.len()
-            && (!self.is_bracket_or_scn(line[index] as u8)
-                && !self.is_start_chain(line[index] as u8)
-                && token != TokEnum::PRIMITIVE
-                && token != TokEnum::ENCAPSULATION
-                && !Tokens::is_operator(line[index].to_string().as_str()).0)
-        {
-            token = self.lexeme_filter(line[index].to_string().as_str());
-            second_mid_data += line[index].to_string().as_str();
-            index += 1;
-        }
-
-        (index - 1, second_mid_data)
+        // let mut second_mid_data = String::new();
+        // let mut token: TokEnum = TokEnum::IDENTIFIER;
+        // while index < line.len()
+        //     && (!self.is_bracket_or_scn(line[index] as u8)
+        //         && !self.is_start_chain(line[index] as u8)
+        //         && token != TokEnum::PRIMITIVE
+        //         && token != TokEnum::ENCAPSULATION
+        //         && !Tokens::is_operator(line[index].to_string().as_str()).0)
+        // {
+        //     token = self.lexeme_filter(line[index].to_string().as_str());
+        //     second_mid_data += line[index].to_string().as_str();
+        //     index += 1;
+        // }
+        //
+        // (index - 1, second_mid_data)
+        (index - 1, "hola".to_string())
     }
 }

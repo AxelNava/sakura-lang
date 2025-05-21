@@ -1,0 +1,41 @@
+﻿pub enum TypeMachine{
+    CELLPHONE,
+    X86,
+    ARM
+}
+pub struct Machine{
+    pub typeMachine: TypeMachine;
+    num_components: i8;
+    pub model: string;
+    pub price_str: string;
+    pub price_float: f32;
+    pub comments: string;
+}
+
+impl Machine{
+    pub fn reset_price_str{
+        self::price_str = "";
+    }
+    fn check_validate_price_str{
+        string::regex(\[0-9]\.?([0-9])?*\)::match(self::price_str);
+    }
+}
+
+fn calculateIVA(base_price: string|int|float): string{
+    match(base_price){
+        typeof string => int(base_price) * 1.16;
+        typeof int, typeof float => base_price * 2.16;
+    }
+}
+fn main() {
+    let machine = Machine::new();
+    machine.price_str = "80.59";
+    machine.price_float = 80.59;
+    let price_with_iva = calculateIVA(machine.price_str);
+    let percentage_earning = 30; // This will inmutable variable
+    /*
+    Now we are going to calculate the final price
+    */
+    let final_price = (price_with_iva * (percentage_earning + 100)) /100;
+    println!("final_price: " + final_price);
+}

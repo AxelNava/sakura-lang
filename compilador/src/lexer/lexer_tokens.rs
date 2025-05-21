@@ -1,39 +1,100 @@
-use strum_macros::{EnumString, AsRefStr};
+use std::ascii::AsciiExt;
+use std::str::Chars;
+use strum_macros::{AsRefStr, EnumString};
 
 use super::lexer_cons::*;
 
-#[derive(EnumString, AsRefStr, PartialEq)]
+/// Este enum es una representación de todos los tokens disponibles para el lenguaje y que serán reconocidos por el analizador
+/// léxico
+#[derive(EnumString, AsRefStr, PartialEq, Debug)]
 pub enum TokEnum {
     IDENTIFIER,
     PRIMITIVE,
-    ORB, //Open Round Brackets
-    CRB, //Close Round Brackets
-    OSB, //Open Square Brackets
-    CSB, //Close Square Brackets
-    OB, //Open Brackets
-    CB, //Close Brackets
-    ASSIGNATION, 
-    SCMT, //SimpleComment
+    ///Open Round Brackets 
+    ORB,
+    ///Close Round Brackets
+    CRB,
+    ///Open Square Brackets
+    OSB,
+    ///Close Square Brackets
+    CSB,
+    ///Open Brackets
+    OB,
+    ///Close Brackets
+    CB,  
+    ASSIGNATION,
+    ///SimpleComment
+    SCMT, 
+    ///Open block comment "/*"
+    OBlockComment,
+    ///Close block comment "*/"
+    CBlockComment,
     STRING,
-    SEMICOLON, 
-    COLON, 
-    INTEGER, 
-    FLOAT, 
-    BOOL, 
-    CHAR, 
-    ADD, 
-    SUBS, 
-    PLUS, 
-    MINUS, 
-    MULT, 
-    DIVIDE, 
-    SQR, 
-    POW, 
-    USING,
-    NAMESPACE,
-    CLASS,
+    SEMICOLON,
+    DoubleDot,
+    Dot,
+    MagicDoubleDot,
+    COLON,
+    INTEGER,
+    FLOAT,
+    BOOL,
+    CHAR,
+    ADD,
+    SUBS,
+    PLUS,
+    MINUS,
+    MULT,
+    DIVIDE,
+    SQR,
+    POW,
     ENCAPSULATION,
-    VOID
+    EQUAL,
+    GREATER,
+    MINOR,
+    ///Equal or greater
+    EG,
+    ///Equal or minor
+    EM,
+    ArrowEq,
+    ArrowSingle,
+    ///This means that can be an or operator or a empty closure params init, like '()' but '||'
+    DoublePipe,
+    AND,
+    PIPE,
+    BinaryAnd,
+    WStatic,
+    WIf,
+    WElse,
+    WWhile,
+    WFor,
+    WLoop,
+    WReturn,
+    WBreak,
+    WContinue,
+    WMatch,
+    WPub,
+    WFn,
+    WLet,
+    WSelfLower,
+    WSelfUpper,
+    WNew,
+    WTrue,
+    WFalse,
+    WAs,
+    WIs,
+    WChar,
+    WInter8,
+    WInter16,
+    WInter32,
+    WInter64,
+    WFloat32,
+    WFloat64,
+    WString,
+    WEnum,
+    WStruct,
+    WUnion,
+    WImpl,
+    WTrait,
 }
 pub enum TokTypeEnum {
     IDENTIFIER,
@@ -42,13 +103,12 @@ pub enum TokTypeEnum {
     STRING,
     FLOAT,
     BOOL,
-    RESERVED
+    RESERVED,
 }
 
 pub struct Tokens;
 
 impl Tokens {
-    
     pub fn is_float(lexeme: &str) -> bool {
         // Intentamos parsear la cadena como un f64
         if let Ok(_float_value) = lexeme.parse::<f64>() {
@@ -58,62 +118,113 @@ impl Tokens {
         false
     }
 
-    pub fn is_integer(lexeme: &str) -> bool { lexeme.parse::<i32>().is_ok() }
-    
-    pub fn is_operator(lexeme: &str) -> (bool, TokEnum) {
-        if lexeme == ((Cons::ADD as u8) as char).to_string() {return (true, TokEnum::ADD);}
-        if lexeme == ((Cons::MINUS as u8) as char).to_string() {return (true, TokEnum::MINUS);}
-        if lexeme == ((Cons::SLASH as u8) as char).to_string() {return (true, TokEnum::DIVIDE);}
-        if lexeme == ((Cons::POW as u8) as char).to_string() {return (true, TokEnum::POW);}
-        if lexeme == ((Cons::MULT as u8) as char).to_string() {return (true, TokEnum::MULT);}
-        if lexeme == ((Cons::EQUALS as u8) as char).to_string() {return (true, TokEnum::ASSIGNATION);}
-        
-        (false, TokEnum::IDENTIFIER)
+    pub fn is_integer(lexeme: &str) -> bool {
+        lexeme.parse::<i32>().is_ok()
     }
 
-    pub fn is_reserved_word(lexeme: &str) -> (bool, TokEnum) {
-        if lexeme == W_USING { return (true, TokEnum::USING);}
-        if lexeme == W_VOID { return (true, TokEnum::VOID);}
-        if lexeme == W_NAMESPACE { return (true, TokEnum::NAMESPACE);}
-        if lexeme == W_CLASS { return (true, TokEnum::CLASS);}
-        
-        (false, TokEnum::IDENTIFIER)
+    pub fn is_operator(lexeme: &str) -> Option<TokEnum> {
+        if lexeme == ((Cons::ADD as u8) as char).to_string() {
+            return Some(TokEnum::ADD);
+        }
+        if lexeme == ((Cons::MINUS as u8) as char).to_string() {
+            return Some(TokEnum::MINUS);
+        }
+        if lexeme == ((Cons::SLASH as u8) as char).to_string() {
+            return Some(TokEnum::DIVIDE);
+        }
+        if lexeme == ((Cons::POW as u8) as char).to_string() {
+            return Some(TokEnum::POW);
+        }
+        if lexeme == ((Cons::MULT as u8) as char).to_string() {
+            return Some(TokEnum::MULT);
+        }
+        if lexeme == ((Cons::EQUALS as u8) as char).to_string() {
+            return Some(TokEnum::ASSIGNATION);
+        }
+        let single_char = match (lexeme) {
+            "|" => Some(TokEnum::PIPE),
+            "&" => Some(TokEnum::BinaryAnd),
+            ":" => Some(TokEnum::DoubleDot),
+            "," => Some(TokEnum::COLON),
+            "." => Some(TokEnum::Dot),
+            _ => None,
+        };
+
+        single_char
     }
-    
-    pub fn is_bracket_or_scn(lexeme: &str) -> (bool, TokEnum) {
-        if lexeme == ((Cons::SCN as u8) as char).to_string() {return (true, TokEnum::SEMICOLON);}
-        if lexeme == ((Cons::OB as u8) as char).to_string() {return (true, TokEnum::OB);}
-        if lexeme == ((Cons::CB as u8) as char).to_string() {return (true, TokEnum::CB);}
-        if lexeme == ((Cons::OSB as u8) as char).to_string() {return (true, TokEnum::OSB);}
-        if lexeme == ((Cons::CSB as u8) as char).to_string() {return (true, TokEnum::CSB);}
-        if lexeme == ((Cons::ORB as u8) as char).to_string() {return (true, TokEnum::ORB);}
-        if lexeme == ((Cons::CRB as u8) as char).to_string() {return (true, TokEnum::CRB);}
-        (false, TokEnum::IDENTIFIER)
+
+    ///Comprueba si es un '{' '}' o un ';'
+    pub fn is_bracket_or_scn(chars: &[char]) -> Option<TokEnum> {
+        let char = chars.get(0).unwrap();
+        let convert_char = |char_ascii: u8| -> char { char_ascii as char };
+
+        if char == &convert_char(Cons::SCN as u8) {
+            return Some(TokEnum::SEMICOLON);
+        }
+        if char == &convert_char(Cons::OB as u8) {
+            return Some(TokEnum::OB);
+        }
+        if char == &convert_char(Cons::CB as u8) {
+            return Some(TokEnum::CB);
+        }
+        if char == &convert_char(Cons::OSB as u8) {
+            return Some(TokEnum::OSB);
+        }
+        if char == &convert_char(Cons::CSB as u8) {
+            return Some(TokEnum::CSB);
+        }
+        if char == &convert_char(Cons::ORB as u8) {
+            return Some(TokEnum::ORB);
+        }
+        if char == &convert_char(Cons::CRB as u8) {
+            return Some(TokEnum::CRB);
+        }
+        None
     }
-    
-    pub fn get_token_type(token: TokEnum) -> TokTypeEnum {
-        match token {
-            TokEnum::USING | TokEnum::VOID | TokEnum::ENCAPSULATION 
-            | TokEnum::CLASS => TokTypeEnum::RESERVED,
-            _ => TokTypeEnum::IDENTIFIER,
+    pub fn get_keyword(value: &str) -> Option<TokEnum> {
+        match value {
+            W_STATIC => Some(TokEnum::WStatic),
+            W_IF => Some(TokEnum::WIf),
+            W_ELSE => Some(TokEnum::WElse),
+            W_WHILE => Some(TokEnum::WWhile),
+            W_FOR => Some(TokEnum::WFor),
+            W_LOOP => Some(TokEnum::WLoop),
+            W_RETURN => Some(TokEnum::WReturn),
+            W_BREAK => Some(TokEnum::WBreak),
+            W_CONTINUE => Some(TokEnum::WContinue),
+            W_MATCH => Some(TokEnum::WMatch),
+            W_PUB => Some(TokEnum::WPub),
+            W_FN => Some(TokEnum::WFn),
+            W_LET => Some(TokEnum::WLet),
+            W_SELFLOWER => Some(TokEnum::WSelfLower),
+            W_SELFUPPER => Some(TokEnum::WSelfUpper),
+            W_NEW => Some(TokEnum::WNew),
+            W_TRUE => Some(TokEnum::WTrue),
+            W_FALSE => Some(TokEnum::WFalse),
+            W_AS => Some(TokEnum::WAs),
+            W_IS => Some(TokEnum::WIs),
+            W_CHAR => Some(TokEnum::WChar),
+            W_INTER8 => Some(TokEnum::WInter8),
+            W_INTER16 => Some(TokEnum::WInter16),
+            W_INTER32 => Some(TokEnum::WInter32),
+            W_INTER64 => Some(TokEnum::WInter64),
+            W_FLOAT32 => Some(TokEnum::WFloat32),
+            W_FLOAT64 => Some(TokEnum::WFloat64),
+            W_STRING => Some(TokEnum::WString),
+            W_ENUM => Some(TokEnum::WEnum),
+            W_STRUCT => Some(TokEnum::WStruct),
+            W_UNION => Some(TokEnum::WUnion),
+            W_IMPL => Some(TokEnum::WImpl),
+            W_TRAIT => Some(TokEnum::WTrait),
+
+            _ => None,
         }
     }
-
     pub fn is_encapsulation(lexeme: &str) -> bool {
-        matches!(lexeme, W_PRIVATE | W_STATIC| W_PUBLIC 
-            | W_INTERNAL)
-    }
-    
-    pub fn is_primitive(lexeme: &str) -> bool {
-        matches!(lexeme, W_STRING | W_CHAR 
-            | W_INT | W_FLOAT 
-            | W_BOOL)
-    }
-    
-    pub fn item_addable(token: TokEnum) -> bool {
-        matches!(token, TokEnum::USING | TokEnum::VOID 
-            | TokEnum::ENCAPSULATION | TokEnum::CLASS 
-            | TokEnum::IDENTIFIER)
+        false
     }
 
+    pub fn is_primitive(lexeme: &str) -> bool {
+        false
+    }
 }

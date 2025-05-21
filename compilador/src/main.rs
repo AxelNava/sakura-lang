@@ -1,32 +1,34 @@
-mod semantic;
+mod SymbolTable;
 mod lexer;
+mod semantic;
 mod sintax;
 
+use lexer::lexer::*;
 use std::{env, fs::read_to_string};
-use lexer::lexer::Lexer;
 
 fn main() {
-    let mut lex =  Lexer::new();
+    let mut lex = Lexer::new();
     let current_dir = env::current_dir().unwrap();
 
-    let file_path = current_dir.display().to_string() + "\\src\\resources\\test.txt";
+    let file_path = current_dir.display().to_string() + "\\src\\resources\\first_example.txt";
 
     println!("Directorio actual: {}", file_path);
     // Leer el contenido del archivo
     match read_to_string(file_path) {
-        Ok(content) => {
-
-            lex.analizer(content.lines().collect());
-            
-            for lexeme in lex.lexemes {
-                println!("*{}*: ({}: {})", lexeme.0, lexeme.1.0.as_ref(), lexeme.1.1)
-            }
-
-        }
         Err(e) => {
             println!("Error al leer el archivo: {}", e);
         }
+        Ok(content) => {
+            lex.analyze(content);
+            // lex.analyzer(content.lines().collect());
+            // for lexeme in lex.lexemes {
+            //     println!(
+            //         "*{}*: ({}: {})",
+            //         lexeme.0,
+            //         lexeme.1 .0.as_ref(),
+            //         lexeme.1 .1
+            //     )
+            // }
+        }
     }
-
-    
 }
