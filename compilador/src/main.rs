@@ -20,15 +20,6 @@ fn main() {
         }
         Ok(content) => {
             lex.analyze(content);
-            // lex.analyzer(content.lines().collect());
-            // for lexeme in lex.lexemes {
-            //     println!(
-            //         "*{}*: ({}: {})",
-            //         lexeme.0,
-            //         lexeme.1 .0.as_ref(),
-            //         lexeme.1 .1
-            //     )
-            // }
         }
     }
 }

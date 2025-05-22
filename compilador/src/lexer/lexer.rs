@@ -1,4 +1,5 @@
-﻿use super::{lexer_cons::*, lexer_tokens::*};
+﻿use super::lexer_tokens::*;
+use std::thread::current;
 
 pub struct Lexer {
     pub lexemes: Vec<(String, (TokEnum, i32))>,
@@ -27,9 +28,10 @@ impl Lexer {
         if characters.get(0) == Some(&'\u{feff}') {
             current_pos = current_pos + 1;
         };
-        let total_length = content.len();
+        let total_length = content.chars().count();
         while current_pos < total_length {
-            if Self::is_newline(characters[current_pos]) {
+            if Self::is_newline(characters[current_pos]) || characters[current_pos].is_whitespace()
+            {
                 current_pos = current_pos + 1;
                 num_lines = num_lines + 1;
                 continue;
@@ -39,9 +41,11 @@ impl Lexer {
             if let Err(error) = result_parse.1 {
                 if !error.is_empty() {
                     self.errors_lexer.push(error.to_string());
+                    current_pos = current_pos + 1;
+                    continue;
                 }
             } else {
-                current_pos = current_pos + result_parse.0.len();
+                current_pos = current_pos + result_parse.0.len() + 1;
                 tokens.push(result_parse.1.unwrap());
                 continue;
             }
@@ -49,19 +53,22 @@ impl Lexer {
             result_parse = Self::parse_two_or_one_characters(&characters[current_pos..]);
             if result_parse.1.is_ok() {
                 tokens.push(result_parse.1.unwrap());
-                current_pos = current_pos + result_parse.0.len();
+                current_pos = current_pos + result_parse.0.len() + 1;
+                continue;
             }
             result_parse = Self::parse_one_character(&characters[current_pos..]);
             if result_parse.1.is_ok() {
                 tokens.push(result_parse.1.unwrap());
-                current_pos = current_pos + result_parse.0.len();
+                current_pos = current_pos + result_parse.0.len() + 1;
                 continue;
             }
             let character_unreadable = characters[current_pos];
             self.errors_lexer.push(format!(
                 "No se reconoce el carácter {character_unreadable}, en la línea: {num_lines}"
             ));
+            current_pos = current_pos + 1;
         }
+        println!("El último token es: {:?}", tokens[tokens.len() - 1]);
     }
     fn parse_one_character(chars: &[char]) -> (String, Result<TokEnum, &str>) {
         let mut binding = chars.iter().peekable();
@@ -69,9 +76,14 @@ impl Lexer {
         if char_to_check.is_some() {
             let char = **char_to_check.unwrap();
             let string_char = char.to_string();
-            let token = Tokens::is_operator(&string_char);
+            let mut token = Tokens::is_operator(&string_char);
             if token.is_some() {
                 return (string_char, Ok(token.unwrap()));
+            } else {
+                token = Tokens::is_bracket_or_scn(&[char]);
+                if token.is_some() {
+                    return (string_char, Ok(token.unwrap()));
+                }
             }
         }
         ("".to_string(), Err(""))
@@ -96,14 +108,16 @@ impl Lexer {
             if item.is_ascii_alphabetic() || item.eq(&'_') {
                 end_word = end_word + 1;
                 peekable_chars.next();
+            } else {
+                break;
             }
         }
-        if (end_word == 0) {
+        if end_word == 0 {
             return ("".to_string(), Err(""));
         }
         let string_identifier = chars.iter().take(end_word).collect::<String>();
         let token = Tokens::get_keyword(&string_identifier);
-        if (token.is_none()) {
+        if token.is_none() {
             return (string_identifier, Ok(TokEnum::IDENTIFIER));
         }
         (string_identifier, Ok(token.unwrap()))

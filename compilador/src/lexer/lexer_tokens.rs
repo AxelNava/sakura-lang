@@ -224,11 +224,4 @@ impl Tokens {
             _ => None,
         }
     }
-    pub fn is_encapsulation(lexeme: &str) -> bool {
-        false
-    }
-
-    pub fn is_primitive(lexeme: &str) -> bool {
-        false
-    }
 }
