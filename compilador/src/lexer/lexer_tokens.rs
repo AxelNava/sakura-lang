@@ -31,9 +31,11 @@ pub enum TokEnum {
     CBlockComment,
     STRING,
     SEMICOLON,
+    ///Double dot is ".." for rest operator like \[other..] or ranges 8..20
     DoubleDot,
     Dot,
-    MagicDoubleDot,
+    MagicDoubleColon,
+    COMA,
     COLON,
     INTEGER,
     FLOAT,
@@ -43,7 +45,7 @@ pub enum TokEnum {
     SUBS,
     PLUS,
     MINUS,
-    MULT,
+    Asterisk,
     DIVIDE,
     SQR,
     POW,
@@ -55,10 +57,12 @@ pub enum TokEnum {
     EG,
     ///Equal or minor
     EM,
+    QuestionMark,
     ArrowEq,
     ArrowSingle,
     ///This means that can be an or operator or a empty closure params init, like '()' but '||'
     DoublePipe,
+    AMPERSAND,
     AND,
     PIPE,
     BinaryAnd,
@@ -136,7 +140,7 @@ impl Tokens {
             return Some(TokEnum::POW);
         }
         if lexeme == ((Cons::MULT as u8) as char).to_string() {
-            return Some(TokEnum::MULT);
+            return Some(TokEnum::Asterisk);
         }
         if lexeme == ((Cons::EQUALS as u8) as char).to_string() {
             return Some(TokEnum::ASSIGNATION);

@@ -3,7 +3,7 @@
 pub struct Lexer {
     pub lexemes: Vec<(String, (TokEnum, i32))>,
     num_line: i32,
-    pub errors: Vec<String>,
+    pub errors_lexer: Vec<String>,
 }
 
 impl Lexer {
@@ -11,7 +11,7 @@ impl Lexer {
         Lexer {
             lexemes: Vec::new(),
             num_line: 0,
-            errors: Vec::new(),
+            errors_lexer: Vec::new(),
         }
     }
     fn is_newline(char: char) -> bool {
@@ -21,6 +21,7 @@ impl Lexer {
         let characters = content.as_str().chars().collect::<Vec<char>>();
         let mut tokens = Vec::<TokEnum>::new();
         let mut current_pos = 0;
+        let mut num_lines = 0;
 
         //Check if the first character is BOM(Byte Order Mark, for windows only)
         if characters.get(0) == Some(&'\u{feff}') {
@@ -28,11 +29,16 @@ impl Lexer {
         };
         let total_length = content.len();
         while current_pos < total_length {
+            if Self::is_newline(characters[current_pos]) {
+                current_pos = current_pos + 1;
+                num_lines = num_lines + 1;
+                continue;
+            }
             let mut result_parse: (String, Result<TokEnum, &str>) =
                 Self::parse_keywords_identifiers(&characters[current_pos..]);
             if let Err(error) = result_parse.1 {
                 if !error.is_empty() {
-                    self.errors.push(error.to_string());
+                    self.errors_lexer.push(error.to_string());
                 }
             } else {
                 current_pos = current_pos + result_parse.0.len();
@@ -49,7 +55,12 @@ impl Lexer {
             if result_parse.1.is_ok() {
                 tokens.push(result_parse.1.unwrap());
                 current_pos = current_pos + result_parse.0.len();
+                continue;
             }
+            let character_unreadable = characters[current_pos];
+            self.errors_lexer.push(format!(
+                "No se reconoce el carácter {character_unreadable}, en la línea: {num_lines}"
+            ));
         }
     }
     fn parse_one_character(chars: &[char]) -> (String, Result<TokEnum, &str>) {
@@ -57,9 +68,10 @@ impl Lexer {
         let char_to_check = binding.peek();
         if char_to_check.is_some() {
             let char = **char_to_check.unwrap();
-            let token = Tokens::is_operator(&char.to_string());
+            let string_char = char.to_string();
+            let token = Tokens::is_operator(&string_char);
             if token.is_some() {
-                ()
+                return (string_char, Ok(token.unwrap()));
             }
         }
         ("".to_string(), Err(""))
@@ -106,42 +118,47 @@ impl Lexer {
         match chars.get(0).unwrap() {
             '=' => match chars.get(1).unwrap() {
                 '>' => ("=>".to_string(), Ok(TokEnum::ArrowEq)),
-                _ => empty_result,
+                '=' => ("==".to_string(), Ok(TokEnum::EQUAL)),
+                _ => ("=".to_string(), Ok(TokEnum::ASSIGNATION)),
             },
 
             '<' => match chars.get(1).unwrap() {
                 '=' => ("<=".to_string(), Ok(TokEnum::EM)),
-                _ => empty_result,
+                _ => ("<".to_string(), Ok(TokEnum::MINOR)),
             },
             '>' => match chars.get(1).unwrap() {
                 '=' => (">=".to_string(), Ok(TokEnum::EG)),
-                _ => empty_result,
+                _ => (">".to_string(), Ok(TokEnum::GREATER)),
             },
             '-' => match chars.get(1).unwrap() {
                 '>' => ("->".to_string(), Ok(TokEnum::ArrowSingle)),
-                _ => empty_result,
+                _ => ("-".to_string(), Ok(TokEnum::MINUS)),
             },
             '&' => match chars.get(1).unwrap() {
                 '&' => ("&&".to_string(), Ok(TokEnum::AND)),
-                _ => empty_result,
+                _ => ("&".to_string(), Ok(TokEnum::AMPERSAND)),
             },
             '|' => match chars.get(1).unwrap() {
                 '|' => ("||".to_string(), Ok(TokEnum::DoublePipe)),
-                _ => ("".to_string(), Err("")),
+                _ => ("|".to_string(), Ok(TokEnum::PIPE)),
             },
             ':' => match chars.get(1).unwrap() {
-                ':' => ("".to_string(), Ok(TokEnum::MagicDoubleDot)),
-                _ => empty_result,
+                ':' => ("".to_string(), Ok(TokEnum::MagicDoubleColon)),
+                _ => (":".to_string(), Ok(TokEnum::COLON)),
             },
             '/' => match chars.get(1).unwrap() {
                 '*' => ("/*".to_string(), Ok(TokEnum::OBlockComment)),
                 '/' => ("//".to_string(), Ok(TokEnum::SCMT)),
-                _ => empty_result,
+                _ => ("/".to_string(), Ok(TokEnum::DIVIDE)),
             },
             '.' => match chars.get(1).unwrap() {
-                '.' => ("".to_string(), Ok(TokEnum::Dot)),
-                _ => empty_result,
-            }
+                '.' => ("".to_string(), Ok(TokEnum::DoubleDot)),
+                _ => (".".to_string(), Ok(TokEnum::Dot)),
+            },
+            ',' => (",".to_string(), Ok(TokEnum::COMA)),
+            '?' => ("?".to_string(), Ok(TokEnum::QuestionMark)),
+            '*' => ("*".to_string(), Ok(TokEnum::Asterisk)),
+            '(' => ("(".to_string(), Ok(TokEnum::OB)),
             _ => empty_result,
         }
     }
