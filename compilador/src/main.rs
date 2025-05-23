@@ -5,6 +5,7 @@ mod sintax;
 
 use lexer::lexer::*;
 use std::{env, fs::read_to_string};
+use crate::lexer::print_elements_lexer::PrintElementsLexer;
 
 fn main() {
     let mut lex = Lexer::new();

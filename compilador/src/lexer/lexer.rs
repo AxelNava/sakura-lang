@@ -1,8 +1,8 @@
 ﻿use super::lexer_tokens::*;
-use std::thread::current;
+use crate::lexer::print_elements_lexer::PrintElementsLexer;
 
 pub struct Lexer {
-    pub lexemes: Vec<(String, (TokEnum, i32))>,
+    pub lexemes: Vec<(String, TokEnum)>,
     num_line: i32,
     pub errors_lexer: Vec<String>,
 }
@@ -30,6 +30,9 @@ impl Lexer {
         };
         let total_length = content.chars().count();
         while current_pos < total_length {
+            if current_pos == 855 {
+                println!("current_pos: {}", current_pos);
+            }
             if Self::is_newline(characters[current_pos]) || characters[current_pos].is_whitespace()
             {
                 current_pos = current_pos + 1;
@@ -45,21 +48,35 @@ impl Lexer {
                     continue;
                 }
             } else {
-                current_pos = current_pos + result_parse.0.len() + 1;
-                tokens.push(result_parse.1.unwrap());
+                current_pos = current_pos + result_parse.0.len();
+                let token = result_parse.1.unwrap();
+                tokens.push(token.clone());
+                self.lexemes.push((result_parse.0.to_string(), token));
                 continue;
             }
 
             result_parse = Self::parse_two_or_one_characters(&characters[current_pos..]);
             if result_parse.1.is_ok() {
-                tokens.push(result_parse.1.unwrap());
-                current_pos = current_pos + result_parse.0.len() + 1;
+                let token = result_parse.1.unwrap();
+                tokens.push(token.clone());
+                self.lexemes
+                    .push((result_parse.0.to_string(), token.clone()));
+                current_pos = current_pos + result_parse.0.len();
+
+                if token.eq(&TokEnum::OBlockComment) || token.eq(&TokEnum::SCMT) {
+                    let is_block = token.eq(&TokEnum::OBlockComment);
+                    let ignored_chars =
+                        Self::ignore_block_comment(&characters[current_pos..], is_block);
+                    current_pos = current_pos + ignored_chars as usize;
+                }
                 continue;
             }
             result_parse = Self::parse_one_character(&characters[current_pos..]);
             if result_parse.1.is_ok() {
-                tokens.push(result_parse.1.unwrap());
-                current_pos = current_pos + result_parse.0.len() + 1;
+                let token = result_parse.1.unwrap();
+                tokens.push(token.clone());
+                self.lexemes.push((result_parse.0.to_string(), token));
+                current_pos = current_pos + result_parse.0.len();
                 continue;
             }
             let character_unreadable = characters[current_pos];
@@ -69,6 +86,10 @@ impl Lexer {
             current_pos = current_pos + 1;
         }
         println!("El último token es: {:?}", tokens[tokens.len() - 1]);
+        let printer = PrintElementsLexer::new("lexer.txt".to_string());
+        printer
+            .print_elements(&self.lexemes)
+            .expect("TODO: panic message");
     }
     fn parse_one_character(chars: &[char]) -> (String, Result<TokEnum, &str>) {
         let mut binding = chars.iter().peekable();
@@ -105,7 +126,7 @@ impl Lexer {
                 );
             }
 
-            if item.is_ascii_alphabetic() || item.eq(&'_') {
+            if item.is_ascii_alphanumeric() || item.eq(&'_') {
                 end_word = end_word + 1;
                 peekable_chars.next();
             } else {
@@ -157,7 +178,7 @@ impl Lexer {
                 _ => ("|".to_string(), Ok(TokEnum::PIPE)),
             },
             ':' => match chars.get(1).unwrap() {
-                ':' => ("".to_string(), Ok(TokEnum::MagicDoubleColon)),
+                ':' => ("::".to_string(), Ok(TokEnum::MagicDoubleColon)),
                 _ => (":".to_string(), Ok(TokEnum::COLON)),
             },
             '/' => match chars.get(1).unwrap() {
@@ -166,14 +187,61 @@ impl Lexer {
                 _ => ("/".to_string(), Ok(TokEnum::DIVIDE)),
             },
             '.' => match chars.get(1).unwrap() {
-                '.' => ("".to_string(), Ok(TokEnum::DoubleDot)),
+                '.' => ("..".to_string(), Ok(TokEnum::DoubleDot)),
                 _ => (".".to_string(), Ok(TokEnum::Dot)),
             },
             ',' => (",".to_string(), Ok(TokEnum::COMA)),
             '?' => ("?".to_string(), Ok(TokEnum::QuestionMark)),
-            '*' => ("*".to_string(), Ok(TokEnum::Asterisk)),
+            '*' => match chars.get(1).unwrap() {
+                '/' => ("*/".to_string(), Ok(TokEnum::CBlockComment)),
+                _ => ("*".to_string(), Ok(TokEnum::Asterisk)),
+            },
             '(' => ("(".to_string(), Ok(TokEnum::OB)),
             _ => empty_result,
         }
+    }
+    /// Get the num of character that are inside the comment
+    ///
+    /// # Arguments
+    ///
+    /// * `chars`:
+    ///
+    /// returns: i64
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///
+    /// ```
+    fn ignore_block_comment(chars: &[char], is_block: bool) -> i64 {
+        let mut peekable_chars = chars.iter().peekable();
+        let mut num_chars = 0;
+        if is_block {
+            while peekable_chars.peek().is_some() {
+                let item = **peekable_chars.peek().unwrap();
+                if item.eq(&'*') {
+                    peekable_chars.next();
+                    if peekable_chars.peek().is_some() && peekable_chars.peek().unwrap().eq(&&'/') {
+                        return num_chars;
+                    } else {
+                        peekable_chars.next();
+                        num_chars = num_chars + 1;
+                    }
+                } else {
+                    peekable_chars.next();
+                    num_chars = num_chars + 1;
+                }
+            }
+        }
+        while peekable_chars.peek().is_some() {
+            let item = **peekable_chars.peek().unwrap();
+            if item.eq(&'\n') {
+                return num_chars;
+            } else {
+                peekable_chars.next();
+                num_chars = num_chars + 1;
+            }
+        }
+        0
     }
 }

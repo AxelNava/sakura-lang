@@ -1,12 +1,10 @@
-use std::ascii::AsciiExt;
-use std::str::Chars;
-use strum_macros::{AsRefStr, EnumString};
+use strum_macros::{AsRefStr, Display, EnumString};
 
 use super::lexer_cons::*;
 
 /// Este enum es una representación de todos los tokens disponibles para el lenguaje y que serán reconocidos por el analizador
 /// léxico
-#[derive(EnumString, AsRefStr, PartialEq, Debug)]
+#[derive(EnumString, AsRefStr, PartialEq, Debug, Display, Clone)]
 pub enum TokEnum {
     IDENTIFIER,
     PRIMITIVE,
@@ -25,13 +23,13 @@ pub enum TokEnum {
     ASSIGNATION,
     ///SimpleComment
     SCMT, 
-    ///Open block comment "/*"
+    ///Open the block comment "/*"
     OBlockComment,
     ///Close block comment "*/"
     CBlockComment,
     STRING,
     SEMICOLON,
-    ///Double dot is ".." for rest operator like \[other..] or ranges 8..20
+    ///Double dot is ".." for a rest operator like \[other..] or ranges 8..20
     DoubleDot,
     Dot,
     MagicDoubleColon,
@@ -145,7 +143,7 @@ impl Tokens {
         if lexeme == ((Cons::EQUALS as u8) as char).to_string() {
             return Some(TokEnum::ASSIGNATION);
         }
-        let single_char = match (lexeme) {
+        let single_char = match lexeme {
             "|" => Some(TokEnum::PIPE),
             "&" => Some(TokEnum::BinaryAnd),
             ":" => Some(TokEnum::DoubleDot),
