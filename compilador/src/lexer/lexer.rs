@@ -1,6 +1,21 @@
 use super::lexer_tokens::*;
 use crate::lexer::print_elements_lexer::PrintElementsLexer;
 
+pub struct Lexeme{
+    pub word:String,
+    pub token:TokEnum,
+    pub line:i32
+}
+
+impl Lexeme {
+    pub fn new() -> Lexeme {
+        Lexeme {
+            word:String::new(),
+            token:TokEnum::IDENTIFIER,
+            line: 0,
+        }
+    }
+}
 pub struct Lexer {
     pub lexemes: Vec<(String, TokEnum)>,
     num_line: i32,
