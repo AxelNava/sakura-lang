@@ -4,7 +4,7 @@ use super::lexer_cons::*;
 
 /// Este enum es una representación de todos los tokens disponibles para el lenguaje y que serán reconocidos por el analizador
 /// léxico
-#[derive(EnumString, AsRefStr, PartialEq, Debug, Display, Clone)]
+#[derive(EnumString, AsRefStr, PartialEq, Debug, Display, Clone, Hash, Eq)]
 pub enum TokEnum {
     IDENTIFIER,
     PRIMITIVE,
@@ -97,6 +97,7 @@ pub enum TokEnum {
     WUnion,
     WImpl,
     WTrait,
+    EndToken,
 }
 pub enum TokTypeEnum {
     IDENTIFIER,

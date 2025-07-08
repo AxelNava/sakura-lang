@@ -1,10 +1,12 @@
 mod SymbolTable;
 mod lexer;
-mod semantic;
+// mod semantic;
 mod sintax;
 
 use lexer::lexer::*;
 use std::{env, fs::read_to_string};
+use compilador::lexer::lexer_tokens::TokEnum;
+use crate::sintax::sintax::Sintax;
 
 fn main() {
     let mut lex = Lexer::new();
@@ -19,7 +21,9 @@ fn main() {
             println!("Error al leer el archivo: {}", e);
         }
         Ok(content) => {
-            lex.analyze(content);
+            let result_lexemes = lex.analyze(content);
+            Sintax::parse(result_lexemes);
         }
-    }
+    };
+    ()
 }

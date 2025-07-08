@@ -1,17 +1,17 @@
 use super::lexer_tokens::*;
 use crate::lexer::print_elements_lexer::PrintElementsLexer;
 
-pub struct Lexeme{
-    pub word:String,
-    pub token:TokEnum,
-    pub line:i32
+pub struct Lexeme {
+    pub word: String,
+    pub token: TokEnum,
+    pub line: i32,
 }
 
 impl Lexeme {
     pub fn new() -> Lexeme {
         Lexeme {
-            word:String::new(),
-            token:TokEnum::IDENTIFIER,
+            word: String::new(),
+            token: TokEnum::IDENTIFIER,
             line: 0,
         }
     }
@@ -33,7 +33,7 @@ impl Lexer {
     fn is_newline(char: char) -> bool {
         char == '\n' || char == '\r'
     }
-    pub fn analyze(&mut self, content: String) {
+    pub fn analyze(&mut self, content: String) -> Result<Vec<(String, TokEnum)>, String> {
         let characters = content.as_str().chars().collect::<Vec<char>>();
         let mut tokens = Vec::<TokEnum>::new();
         let mut current_pos = 0;
@@ -48,31 +48,21 @@ impl Lexer {
             if current_pos == 855 {
                 println!("current_pos: {}", current_pos);
             }
+
             if Self::is_newline(characters[current_pos]) || characters[current_pos].is_whitespace()
             {
                 current_pos = current_pos + 1;
-                num_lines = num_lines + 1;
-                continue;
-            }
-            let mut result_parse: (String, Result<TokEnum, &str>) =
-                Self::parse_keywords_identifiers(&characters[current_pos..]);
-            if let Err(error) = result_parse.1 {
-                if !error.is_empty() {
-                    self.errors_lexer.push(error.to_string());
-                    current_pos = current_pos + 1;
-                    continue;
+                if Self::is_newline(characters[current_pos]) {
+                    num_lines = num_lines + 1;
                 }
-            } else {
-                current_pos = current_pos + result_parse.0.len();
-                let token = result_parse.1.unwrap();
-                tokens.push(token.clone());
-                self.lexemes.push((result_parse.0.to_string(), token));
                 continue;
             }
 
-            result_parse = Self::parse_two_or_one_characters(&characters[current_pos..]);
+            let mut result_parse: (String, Result<TokEnum, &str>) =
+                Self::parse_two_or_one_characters(&characters[current_pos..]);
+
             if result_parse.1.is_ok() {
-                let token = result_parse.1.unwrap();
+                let token = result_parse.1?;
                 tokens.push(token.clone());
                 self.lexemes
                     .push((result_parse.0.to_string(), token.clone()));
@@ -86,14 +76,41 @@ impl Lexer {
                 }
                 continue;
             }
+
             result_parse = Self::parse_one_character(&characters[current_pos..]);
             if result_parse.1.is_ok() {
-                let token = result_parse.1.unwrap();
+                let token = result_parse.1?;
                 tokens.push(token.clone());
                 self.lexemes.push((result_parse.0.to_string(), token));
                 current_pos = current_pos + result_parse.0.len();
                 continue;
             }
+
+            result_parse = Self::parse_number(&characters[current_pos..]);
+            if result_parse.1.is_ok() {
+                let token = result_parse.1?;
+                tokens.push(token.clone());
+                self.lexemes.push((result_parse.0.to_string(), token));
+                current_pos = current_pos + result_parse.0.len();
+                continue;
+            }
+
+            result_parse = Self::parse_keywords_identifiers(&characters[current_pos..]);
+
+            if let Err(error) = result_parse.1 {
+                if !error.is_empty() {
+                    self.errors_lexer.push(error.to_string());
+                    current_pos = current_pos + 1;
+                    continue;
+                }
+            } else {
+                current_pos = current_pos + result_parse.0.len();
+                let token = result_parse.1?;
+                tokens.push(token.clone());
+                self.lexemes.push((result_parse.0.to_string(), token));
+                continue;
+            }
+
             let character_unreadable = characters[current_pos];
             self.errors_lexer.push(format!(
                 "No se reconoce el carácter {character_unreadable}, en la línea: {num_lines}"
@@ -105,7 +122,57 @@ impl Lexer {
         printer
             .print_elements(&self.lexemes)
             .expect("TODO: panic message");
+        Ok(self.lexemes.clone())
     }
+    fn parse_number(chars: &[char]) -> (String, Result<TokEnum, &str>) {
+        let mut binding = chars.iter().peekable();
+        let mut final_number: String = "".to_string();
+        let mut is_decimal = false;
+        loop {
+            let char_to_check = binding.peek();
+            if char_to_check.is_some() {
+                let char = **char_to_check.unwrap();
+                if char.is_numeric() {
+                    binding.next();
+                    final_number.push_str(&char.to_string());
+                } else {
+                    if char == '.' && is_decimal == false {
+                        is_decimal = true;
+                        final_number.push_str(&char.to_string());
+                        continue;
+                    }
+                    if is_decimal == true {
+                        return (
+                            "".to_string(),
+                            Err("No se puede tener más de un punto decimal en un número decimal"),
+                        );
+                    }
+                    if (final_number.is_empty()) {
+                        return ("".to_string(), Err(""));
+                    }
+                    return (
+                        final_number.to_string(),
+                        Ok(match is_decimal {
+                            false => TokEnum::INTEGER,
+                            true => TokEnum::FLOAT,
+                        }),
+                    );
+                }
+            }else{
+                if (final_number.is_empty()) {
+                    return ("".to_string(), Err(""));
+                }
+                return (
+                    final_number.to_string(),
+                    Ok(match is_decimal {
+                        false => TokEnum::INTEGER,
+                        true => TokEnum::FLOAT,
+                    }),
+                );
+            }
+        }
+    }
+
     fn parse_one_character(chars: &[char]) -> (String, Result<TokEnum, &str>) {
         let mut binding = chars.iter().peekable();
         let char_to_check = binding.peek();
