@@ -15,6 +15,7 @@ pub enum ParserState<T> {
     Goto(T, String, i16),
 }
 
+#[derive(Debug, Clone)]
 pub enum CLRActions {
     Shift,
     Reduce,

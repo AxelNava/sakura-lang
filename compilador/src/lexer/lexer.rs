@@ -147,7 +147,7 @@ impl Lexer {
                             Err("No se puede tener más de un punto decimal en un número decimal"),
                         );
                     }
-                    if (final_number.is_empty()) {
+                    if final_number.is_empty() {
                         return ("".to_string(), Err(""));
                     }
                     return (
@@ -159,7 +159,7 @@ impl Lexer {
                     );
                 }
             }else{
-                if (final_number.is_empty()) {
+                if final_number.is_empty() {
                     return ("".to_string(), Err(""));
                 }
                 return (

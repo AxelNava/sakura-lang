@@ -1,5 +1,3 @@
-use std::path::Iter;
-
 ///El enum representa los valores ASCII de los tokens mencionados,
 /// por ejemplo el token ';' tiene el valor ASCII 59.
 /// Estos tokens son constantes, por lo que siempre serán los mismos independientemente del lenguaje utilizado
