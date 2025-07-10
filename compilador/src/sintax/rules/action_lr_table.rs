@@ -1,4 +1,5 @@
-﻿use crate::lexer::lexer_tokens::TokEnum;
+﻿use std::fmt::Display;
+use crate::lexer::lexer_tokens::TokEnum;
 use crate::sintax::rules::baseParser::{CLRActions, ParserCharacters};
 use std::hash::Hash;
 use std::iter::zip;
@@ -8,7 +9,7 @@ use strum::EnumCount;
 #[derive(Debug, Clone)]
 pub struct ActionLrTable<T>
 where
-    T: EnumCount + Clone + Hash + Eq,
+    T: EnumCount + Clone + Hash + Eq ,
 {
     pub action: CLRActions,
     pub goto_state: i16,

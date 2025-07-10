@@ -1,30 +1,16 @@
 ﻿use crate::lexer::lexer_tokens::TokEnum;
+use crate::sintax::rules::action_lr_table::ActionLrTable;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::thread::current;
 use strum::EnumCount;
 use strum_macros::EnumCount;
-
-/// Enum that represent the state of the LR(1) table
-/// The action variant is for terminal characters, the
-/// goto variant is for non-terminal characters, this has to
-/// be an enum with all the non-terminal characters
-pub enum ParserState<T> {
-    Action(TokEnum, CLRActions, i16),
-    Goto(T, String, i16),
-}
 
 #[derive(Debug, Clone)]
 pub enum CLRActions {
     Shift,
     Reduce,
     Accept,
-}
-
-pub enum TokenType {
-    Terminal,
-    NonTerminal,
 }
 
 #[derive(Hash, Eq, PartialEq, Debug, Clone)]
@@ -36,13 +22,6 @@ where
     NonTerminal(T),
 }
 
-pub struct AST {
-    pub name: String,
-    pub type_token: TokenType,
-    pub children: Vec<AST>,
-}
-
-
 pub struct Parser<T>
 where
     T: EnumCount + Hash + Eq + PartialEq,
@@ -52,7 +31,7 @@ where
 }
 impl<T> Parser<T>
 where
-    T: EnumCount + Hash + Eq + PartialEq,
+    T: EnumCount + Hash + Eq + PartialEq + Clone,
 {
     pub fn new() -> Self {
         Self {
@@ -72,35 +51,6 @@ where
     pub fn get_errors(&self) -> &Vec<(String, i32, TokEnum, TokEnum)> {
         &self.errors
     }
-    ///
-    ///
-    /// # Arguments
-    ///
-    /// * `lexemes`: All lexemes to analyze
-    /// * `lr_table`: HashMap of HashMap, the first level has the state and all the posibles values to do,
-    /// the second level has the actions to execute and the rest of the data to do the action
-    ///
-    /// returns: () TODO: return the AST
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    pub fn run_parser(
-        &self,
-        lexemes: Vec<(String, TokEnum)>,
-        lr_table: HashMap<i16, HashMap<ParserCharacters<T>, (CLRActions, i16)>>,
-    ) {
-        Self::run(lexemes, lr_table);
-    }
-}
-impl<T> BaseParser<T> for Parser<T> where T: EnumCount + Hash + Eq + PartialEq {}
-
-trait BaseParser<T>
-where
-    T: EnumCount + Hash + Eq + PartialEq,
-{
     /// run the parser algorithm for the rest of the lexemes available
     /// # Arguments
     ///
@@ -114,51 +64,12 @@ where
     ///
     /// ```
     ///
-    /// ```
-    fn run(
+    /// ````
+    pub fn run_parser(
+        &self,
         lexemes: Vec<(String, TokEnum)>,
-        lr_table: HashMap<i16, HashMap<ParserCharacters<T>, (CLRActions, i16)>>,
+        lr_table: HashMap<i16, HashMap<String, ActionLrTable<T>>>,
     ) {
-        let mut peekable_lexemes = lexemes.iter().peekable();
-        let lexeme = peekable_lexemes.peek();
-        let value_terminal_lexeme = *lexeme.unwrap();
-
-        let mut current_state = 0;
-        let mut last_token: ParserCharacters<T>;
-        let mut accept = false;
-        loop {
-            peekable_lexemes.next();
-            let value_state_lexeme = peekable_lexemes.peek();
-            let lexeme = *value_state_lexeme.unwrap();
-            let value_table_state = lr_table.get(&current_state).unwrap();
-            let token_value = lexeme.1.clone();
-            let value_state_action =
-                value_table_state.get_key_value(&ParserCharacters::Terminal(token_value));
-
-            if value_state_action.is_none() {
-                //TODO: This have to change to continue the parser
-                panic!("Error, no action for the token");
-            }
-
-            let action_token = value_state_action.unwrap().1;
-            let action = &action_token.0;
-            let next_state = action_token.1;
-            let next_action = match action {
-                CLRActions::Shift => {
-                    current_state = next_state;
-                }
-                CLRActions::Reduce => {
-                    
-                }
-                CLRActions::Accept => {
-                    current_state = next_state;
-                    accept = true;
-                    break;
-                }
-            };
-        }
-        if accept {
-            let last_state = lr_table.get(&current_state).unwrap();
-        }
+        
     }
 }
