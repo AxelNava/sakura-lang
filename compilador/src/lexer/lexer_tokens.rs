@@ -98,6 +98,7 @@ pub enum TokEnum {
     WImpl,
     WTrait,
     EndToken,
+    EmptyToken
 }
 pub enum TokTypeEnum {
     IDENTIFIER,
